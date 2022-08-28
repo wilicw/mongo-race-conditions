@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { Order } = require('../models/Order');
 const { User } = require('../models/User');
+const { redlock } = require('../lock');
 
 router.get('/new/:username', function (req, res, next) {
   const username = req.params.username;
@@ -14,7 +15,10 @@ router.get('/new/:username', function (req, res, next) {
 
 router.get('/borrow/:username', function (req, res, next) {
   const username = req.params.username;
-  User.findOne({ username: username })
+  let lock = null;
+  redlock.acquire([`lock_${username}`], 100)
+    .then(_lock => lock = _lock)
+    .then(() => User.findOne({ username: username }))
     .then(user => {
       if (user.borrowed < user.limit) {
         user.borrowed += 1;
@@ -29,7 +33,11 @@ router.get('/borrow/:username', function (req, res, next) {
       return order.save();
     })
     .then(() => res.send())
-    .catch((err) => res.send(err));
+    .then(() => lock.release())
+    .catch((err) => {
+      res.send(err);
+      if (lock) lock.release();
+    });
 });
 
 router.get('/return/:username', function (req, res, next) {

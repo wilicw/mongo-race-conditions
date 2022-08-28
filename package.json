@@ -10,9 +10,11 @@
     "debug": "~2.6.9",
     "express": "~4.16.1",
     "http-errors": "~1.6.3",
+    "ioredis": "^5.2.3",
     "mongodb": "^4.9.0",
     "mongoose": "^6.5.3",
     "morgan": "~1.9.1",
-    "redis": "^4.3.0"
+    "redis": "^4.3.0",
+    "redlock": "^4.2.0"
   }
 }
