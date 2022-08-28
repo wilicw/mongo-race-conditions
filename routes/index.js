@@ -14,29 +14,29 @@ router.get('/new/:username', function (req, res, next) {
 
 router.get('/borrow/:username', function (req, res, next) {
   const username = req.params.username;
-  User.findOne({ username: username }, (err, user) => {
-    console.log(user);
-    if (user.borrowed < user.limit) {
-      user.borrowed += 1;
+  User.findOne({ username: username })
+    .then(user => {
+      if (user.borrowed < user.limit) {
+        user.borrowed += 1;
+        return user.save();
+      }
+      throw new Error('Limit exceed');
+    })
+    .then(() => {
       const order = new Order({
         username: username,
       });
-      order.save();
-      user.save();
-    }
-  });
-  res.send();
+      return order.save();
+    })
+    .then(() => res.send())
+    .catch((err) => res.send(err));
 });
 
 router.get('/return/:username', function (req, res, next) {
   const username = req.params.username;
-  Order.updateMany({ username: username }, { returned: true }, (err, orders) => {
-    User.findOne({ username: username }, (err, user) => {
-      user.borrowed = 0;
-      user.save();
-    })
-    res.json({ "msg": `${username} returned` });
-  });
+  Order.updateMany({ username: username }, { returned: true })
+    .then(() => User.updateOne({ username: username }, { borrowed: 0 }))
+    .then(() => res.json({ "msg": `${username} returned` }));
 });
 
 module.exports = router;
